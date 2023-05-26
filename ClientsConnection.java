@@ -9,7 +9,7 @@ public class ClientsConnection {
     private Integer numPortSrc;
     private Integer numPortDest;
     private Integer bandwidth;
-    private static Integer flowId = 0;
+    public static Integer flowID = 0;
     private boolean reservationFree;
 
     public ClientsConnection(Integer requestType, String ipSrc, String ipDest, Integer numPortSrc, Integer numPortDest, Integer bandwidth) {
@@ -20,7 +20,7 @@ public class ClientsConnection {
         this.numPortDest = numPortDest;
         this.bandwidth   = bandwidth;
         this.reservationFree = false;
-        flowId++;
+        flowID++;
     }
 
     public Integer getRequestType() {

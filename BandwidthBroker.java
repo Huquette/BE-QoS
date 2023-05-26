@@ -5,14 +5,15 @@ import java.util.HashMap;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-
+import openjsip.ClientsConnection;
 import static openjsip.Reseau.getCIDRToSubnetMask;
 import static openjsip.Reseau.ipToNetwork;
 
-public class BandwidthBroker implements Runnable {
+public class BandwidthBroker {
 	//hashmap representing the SLA contracts made with each of the remote networks. The SLA hashmap records the remote network, and the bandwidth allocated for this network
 	static HashMap <Integer, Integer> sla = new HashMap<Integer, Integer>(); 
 	//hashmap representing the used resources, which records each ip and the bandwidth allocated to this ip. A REVOIR CA PEUT ETRE PAS BESOIN
@@ -34,7 +35,7 @@ public class BandwidthBroker implements Runnable {
 	
 	//method to add an SLA in the already existing SLA hashmap
 	private static void addSLA(Integer flowID, Integer resource) throws UnknownHostException {
-		sla.put(flowID, resource);
+		sla.put(ClientsConnection.flowID, resource);
 	}
 
 	private static boolean checkSLA(Integer flowID, Integer bandwidth) {
@@ -55,13 +56,13 @@ public class BandwidthBroker implements Runnable {
 				Integer userBandwidth = usedResources.get(flowID);
 
 				// true if the flowID is not in the usedResources hashmap
-				boolean firstTimeRequesting = !usedResources.containsKey(flowID);
-				boolean SLAContracted = sla.containsKey(flowID);
+				boolean firstTimeRequesting = !usedResources.containsKey(ClientsConnection.flowID);
+				boolean SLAContracted = sla.containsKey(ClientsConnection.flowID);
 
 				//if the SLA is contracted
 				if (SLAContracted) {
 					//if the client with the corresponding flowID respects the contract, we update the bandwidth to allocate in usedResources
-					if (checkSLA(flowID, bandwidthToAllocate)) {
+					if (checkSLA(ClientsConnection.flowID, bandwidthToAllocate)) {
 						if (bandwidthToAllocate < (TOTAL_BANDWIDTH - sommeBandwidthTotal())) {
 							if (firstTimeRequesting) {
 								usedResources.put(flowID, bandwidthToAllocate);
@@ -87,16 +88,16 @@ public class BandwidthBroker implements Runnable {
 		try {
 			
 			Integer bandwidthUser;
-			boolean firstTimeRequesting = !usedResources.containsKey(flowID);
-			boolean SLAContracted = sla.containsKey(flowID);
-			Integer userBandwidth = usedResources.get(flowID);
+			boolean firstTimeRequesting = !usedResources.containsKey(ClientsConnection.flowID);
+			boolean SLAContracted = sla.containsKey(ClientsConnection.flowID);
+			Integer userBandwidth = usedResources.get(ClientsConnection.flowID);
 			// The method checks if the user with the IP address "ip" has not made any previous requests by using the variable firstTimeRequesting.
 			// If that is the case, it also verifies if the corresponding SLA contract for the network IP address "ip" exists.
 			if(SLAContracted && firstTimeRequesting) {
 				System.out.println("Error : you tried to liberate bandwidth that was never allocated in the first place");
 				return false;
 			} else if(SLAContracted) { // if the SLA is contracted, and it is not the first time requesting 
-				usedResources.replace(flowID, userBandwidth - bandwidthToLiberate);
+				usedResources.replace(ClientsConnection.flowID, userBandwidth - bandwidthToLiberate);
 				return true;
 			}	else {
 				System.out.println("SLA not contracted yet");
@@ -116,56 +117,46 @@ public class BandwidthBroker implements Runnable {
 	// a call or connection in a network or communication system.
 	public void acceptCall(Integer flowID, Integer bw) throws UnknownHostException {
 		//if the packet received has a requestType = 'ACCEPT' (i.e. he accepts the call)
-		if(clientsConnection.getRequestType() == 1) {
-			System.out.println("Call incoming from the client n° : "+ flowID);
-			if(sla.containsKey(flowID)) {
-				
-				if(this.allocateBandwidth(flowID, bw)) {
-					System.out.println("Bandwidth can be allocated to the following client : " + flowID);
-				} else {
-					System.out.println("Couldn't allocate bandwidth to the client n° : " + flowID + " check if the SLA is respected.");
-				}
+		System.out.println("Call incoming from the client n° : "+ flowID);
+		if(sla.containsKey(ClientsConnection.flowID)) {
+			
+			if(this.allocateBandwidth(ClientsConnection.flowID, bw)) {
+				System.out.println("Bandwidth can be allocated to the following client : " + ClientsConnection.flowID);
 			} else {
-				
-				if(this.allocateBandwidth(flowID, bw)){
-					addSLA(flowID, bw);
-					System.out.println("Bandwidth can be allocated to the following client : " + flowID);
-				} else{
-					System.out.println("Couldn't allocate bandwidth to the client n° : " + flowID + " check if the SLA is respected.");
-				}
-			}	
-		} else{
-			System.out.println("Error: Request type is not 'ACCEPT'.");
-		}
+				System.out.println("Couldn't allocate bandwidth to the client n° : " + ClientsConnection.flowID + " check if the SLA is respected.");
+			}
+		} else {
+			
+			if(this.allocateBandwidth(flowID, bw)){
+				addSLA(ClientsConnection.flowID, bw);
+				System.out.println("Bandwidth can be allocated to the following client : " + ClientsConnection.flowID);
+			} else{
+				System.out.println("Couldn't allocate bandwidth to the client n° : " + ClientsConnection.flowID + " check if the SLA is respected.");
+			}
+		}	
 	}
+	
 
 	//when a machine belonging to another network wants to hang up with a machine in the network of the bandwidth broker, this method is called by the BB
 	// The above code is a Java method called `hangUpCall` that takes two parameters: `flowID` and `bw`.
 	// It throws an `UnknownHostException` exception.
 	public void hangUpCall(Integer flowID, Integer bw) throws UnknownHostException {
 		
-		System.out.println("Call from the client n° : " + flowID + " has ended");
-		
+		System.out.println("Call from the client n° : " + ClientsConnection.flowID + " has ended");
 
 		//if the packet received has a requestType = 'BYE' (i.e. he hangs up the call)
-		if(clientsConnection.getRequestType() == 0){
-			if(sla.containsKey(flowID)){
-				if(this.liberateBandwidth(flowID, bw)){
-					System.out.println("Bandwidth liberated from the following client : " + flowID);
-					
-				} else{
-					System.out.println("Couldn't liberate bandwidth to the client : " + flowID + ".");
-				}
+		if(sla.containsKey(ClientsConnection.flowID)){
+			if(this.liberateBandwidth(ClientsConnection.flowID, bw)){
+				System.out.println("Bandwidth liberated from the following client : " + ClientsConnection.flowID);
+				
 			} else{
-				System.out.println("Error: IP is not specified in the SLA.");
+				System.out.println("Couldn't liberate bandwidth to the client : " + ClientsConnection.flowID + ".");
 			}
 		} else{
-			System.out.println("Error: Request type is not 'BYE'.");
+			System.out.println("Error: IP is not specified in the SLA.");
 		}
-			
 	}
-
-	@Override
+			
 	/**
 	 * The BBThread class listens for incoming proxy connections on a specified port and handles them in
 	 * separate threads.
@@ -175,7 +166,7 @@ public class BandwidthBroker implements Runnable {
 			try {
 				ServerSocket serverSocket = new ServerSocket(PORT_PROXY);
 				System.out.println("BandwidthBroker listening on the proxy port " + PORT_PROXY);
-	
+	 
 				while (true) {
 					Socket proxySocket = serverSocket.accept();
 					System.out.println("New proxy connected: " + proxySocket.getInetAddress().getHostAddress());
@@ -223,9 +214,9 @@ public class BandwidthBroker implements Runnable {
 		}
 	}
 
-	private boolean processRequest(String request, PrintWriter writer) throws UnknownHostException {
+	private boolean processRequest(String request, PrintWriter writer) throws IOException {
 		//array that allows to split the request into three variables : ip, mask and bandwidth
-		String[] requestArray = request.split(";");
+		String[] requestTab = request.split(";");
 		Integer requestType   = Integer.parseInt(requestTab[0]);
 		String  ipSrc         = requestTab[1];
 		Integer portSrc       = Integer.parseInt(requestTab[2]);
@@ -233,40 +224,44 @@ public class BandwidthBroker implements Runnable {
 		Integer portDest      = Integer.parseInt(requestTab[4]);
 		Integer bandwidth     = Integer.parseInt(requestTab[5]);
 
-		ClientsConnection clientsConnection = new ClientsConnection(requestType, ipSrc, portSrc, ipDest, portDest, bandwidth);
+		ClientsConnection clientsConnection = new ClientsConnection(requestType, ipSrc, ipDest, portSrc, portDest, bandwidth);
 
 		// bandwidth utilisée inférieure à bandwidth restante dans le réseau 
 		if (clientsConnection.getBandwidth() < TOTAL_BANDWIDTH - sommeBandwidthTotal()) { // bandwidth not respected
 			clientsConnection.setReservation(false);
-			writer.println(false);
+			writer.println("0");
 			System.out.println("Sent response to client: " + false);
 			return false;
-		} else if (!checkSLA(flowID, bandwidth)) { // SLA not respected
+		} else if (!checkSLA(ClientsConnection.flowID, bandwidth)) { // SLA not respected
 			clientsConnection.setReservation(false);
-			writer.println(false);
+			writer.println("0");
 			System.out.println("Sent response to client: " + false);
 			return false;
 		} else {
 			clientsConnection.setReservation(true);
 			//accepting the call since everything is fine
 			if(clientsConnection.getRequestType() == 1) {
-				acceptCall(flowID, bandwidth);
-				writer.println(true);
+				acceptCall(ClientsConnection.flowID, bandwidth);
+				writer.println("1");
 			} else if (clientsConnection.getRequestType() == 0) {
-				hangUpCall(flowID, bandwidth);
-				writer.println(true);
+				hangUpCall(ClientsConnection.flowID, bandwidth);
+				writer.println("1");
 			} else {
-				writer.println(false);
+				writer.println("0");
 			}
 			// to implement: possibilité de savoir quand ils ont raccroché pour rendre les ressources
 
 			//add routeurs corresponding to the network of the packet we just received
-			addRouter(clientsConnection.getIPSrc());	
-			addRouter(clientsConnection.getIPDest());
+			if(addRouter(clientsConnection.getIpSrc())){
+				System.out.println("Router added for the source client.");
+			}	
+			if(addRouter(clientsConnection.getIpDest())){
+				System.out.println("Router added for the destination client.");
+			}
 
 			//create sockets to send the packet to the routers of each client
-			Socket routerSocketSrc = new Socket(clientsConnection.getIPSrc(), clientsConnection.getPortSrc());
-			Socket routerSocketDest = new Socket(clientsConnection.getIPDest(), clientsConnection.getPortDest());
+			Socket routerSocketSrc = new Socket(clientsConnection.getIpSrc(), clientsConnection.getPortSrc());
+			Socket routerSocketDest = new Socket(clientsConnection.getIpDest(), clientsConnection.getPortDest());
 			
 			//we send to both routers, one router for the source client network and the other for the destination client network
 			sendRouterTCP(routerSocketSrc, clientsConnection);
@@ -275,29 +270,32 @@ public class BandwidthBroker implements Runnable {
 		}
 	}
 
-	private boolean addRouter(String ip) {
-		String ipNetwork = ipToNetwork(ip, 24);
+	private boolean addRouter(String ip) throws UnknownHostException {
+		String ipNetwork = ipToNetwork(ip, "24");
 		if(!routersMap.containsKey(ip)){
 			routersMap.put(ip, ipNetwork); //on choisi un masque de 24 a voir s'il faut un different on peut le changer ici
+			return true;
 		} else{
 			System.out.println("Error: Router already exists for the given IP.");
+			return false;
 		}
 	}
 
 	//quand on recoit un paquet du proxy, on regarde le prefix reseau de l'ipSrc et le prefix reseau de l'ipDest,
 	//et on créé un routeur pour chaque reseau pour pouvoir apres leur envoyer l'ip de l'autre client
-	private void sendRouterTCP(Socket routerSocket, clientsConnection clientsConnection) {
+	private void sendRouterTCP(Socket routerSocket, ClientsConnection clientsConnection) {
 		try {
 			OutputStream outputStream = routerSocket.getOutputStream();
+			
 			//create the output stream writer to send data to the client
 			PrintWriter writer = new PrintWriter(routerSocket.getOutputStream(), true);
 			String concatMessage;
 			//if the router corresponding to the source client is in the hashmap of routers
-			if(routersMap.containsKey(clientsConnection.getIPSrc())){
-				concatMessage = "reservation:"  + flowID + "," + clientsConnection.getIPDest() + "," + clientsConnection.getPortDest();
+			if(routersMap.containsKey(clientsConnection.getIpSrc())){
+				concatMessage = "reservation:"  + ClientsConnection.flowID + "," + clientsConnection.getIpDest() + "," + clientsConnection.getPortDest();
 				writer.println(concatMessage);
-			} else if (routersMap.containsKey(clientsConnection.getIPDest()){
-				concatMessage = "free:"  + flowID + "," + clientsConnection.getIPSrc() + "," + clientsConnection.getPortSrc();
+			} else if (routersMap.containsKey(clientsConnection.getIpDest())){
+				concatMessage = "free:"  + ClientsConnection.flowID + "," + clientsConnection.getIpSrc() + "," + clientsConnection.getPortSrc();
 				writer.println(concatMessage);
 			}
 
@@ -306,9 +304,9 @@ public class BandwidthBroker implements Runnable {
 			e.printStackTrace();
 		}
 	}
-
 	public static void main(String[] args) {
-		BBThread bbThread = new BBThread();
+		BandwidthBroker bb = new BandwidthBroker();
+		BBThread bbThread = bb.new BBThread();
 		bbThread.start();
 	}
 }
