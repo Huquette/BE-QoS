@@ -109,8 +109,11 @@ public class BandwidthBroker implements Runnable {
 		return false;
 	}
 	
-	//method that is called when a call initiated from a remote network is accepted. The Bandwidth Broker thus needs to allocate the bandwidth that is available
-	//depending on the SLA made, or not, with the incoming network. The flowID of the incoming call is specified with its mask, and the bandwidth to allocate as well.
+	
+	// The above code is defining a method named "acceptCall" that takes two parameters: "flowID" and "bw"
+	// both of type Integer. The method also throws an exception of type UnknownHostException. The purpose
+	// of the method is not clear from the given code snippet alone, but it is likely related to accepting
+	// a call or connection in a network or communication system.
 	public void acceptCall(Integer flowID, Integer bw) throws UnknownHostException {
 		//if the packet received has a requestType = 'ACCEPT' (i.e. he accepts the call)
 		if(clientsConnection.getRequestType() == 1) {
@@ -137,6 +140,8 @@ public class BandwidthBroker implements Runnable {
 	}
 
 	//when a machine belonging to another network wants to hang up with a machine in the network of the bandwidth broker, this method is called by the BB
+	// The above code is a Java method called `hangUpCall` that takes two parameters: `flowID` and `bw`.
+	// It throws an `UnknownHostException` exception.
 	public void hangUpCall(Integer flowID, Integer bw) throws UnknownHostException {
 		
 		System.out.println("Call from the client n° : " + flowID + " has ended");
@@ -161,6 +166,10 @@ public class BandwidthBroker implements Runnable {
 	}
 
 	@Override
+	/**
+	 * The BBThread class listens for incoming proxy connections on a specified port and handles them in
+	 * separate threads.
+	 */
 	public class BBThread extends Thread {
 		public void run() {
 			try {
@@ -182,6 +191,13 @@ public class BandwidthBroker implements Runnable {
 	}
 	
 
+	/**
+	 * This function handles a proxy socket connection by reading a request from the client, processing
+	 * it, and sending a response.
+	 * 
+	 * @param proxySocket A Socket object representing the connection between the proxy server and the
+	 * client. It is used to send and receive data between the two endpoints.
+	 */
 	private void handleProxy(Socket proxySocket) {
 		try {
 			//create the input stream reader to read data sent by the client
@@ -278,10 +294,10 @@ public class BandwidthBroker implements Runnable {
 			String concatMessage;
 			//if the router corresponding to the source client is in the hashmap of routers
 			if(routersMap.containsKey(clientsConnection.getIPSrc())){
-				concatMessage = flowID + ";" + clientsConnection.getIPDest() + ";" + clientsConnection.getPortDest() + ";" + clientsConnection.isReservation();
+				concatMessage = "reservation:"  + flowID + "," + clientsConnection.getIPDest() + "," + clientsConnection.getPortDest();
 				writer.println(concatMessage);
 			} else if (routersMap.containsKey(clientsConnection.getIPDest()){
-				concatMessage = flowID + ";" + clientsConnection.getIPSrc() + ";" + clientsConnection.getPortSrc() + ";" + clientsConnection.isReservation();
+				concatMessage = "free:"  + flowID + "," + clientsConnection.getIPSrc() + "," + clientsConnection.getPortSrc();
 				writer.println(concatMessage);
 			}
 
