@@ -1,4 +1,4 @@
-package openjsip;
+//package openjsip;
 
 import java.net.UnknownHostException;
 import java.util.HashMap;
@@ -22,7 +22,7 @@ public class BandwidthBroker {
 	static HashMap <String, String> routersMap = new HashMap<String, String>();
 
 	public static final int TOTAL_BANDWIDTH = 1000; // Kbps
-	public static final int PORT_PROXY = 5098; 
+	public static final int PORT_PROXY = 5060; 
 
 	// bandwidth total utilisé sur le réseau pour l'instant
 	private static Integer sommeBandwidthTotal(){ 
@@ -271,7 +271,7 @@ public class BandwidthBroker {
 	}
 
 	private boolean addRouter(String ip) throws UnknownHostException {
-		String ipNetwork = ipToNetwork(ip, "24");
+		String ipNetwork = ipToNetwork(ip, getCIDRToSubnetMask(24));
 		if(!routersMap.containsKey(ip)){
 			routersMap.put(ip, ipNetwork); //on choisi un masque de 24 a voir s'il faut un different on peut le changer ici
 			return true;
