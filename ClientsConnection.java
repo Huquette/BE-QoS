@@ -1,15 +1,16 @@
-package openjsip;
+//package openjsip;
 
-import static openjsip.Reseau.getCIDRToSubnetMask;
+//static Reseau.getCIDRToSubnetMask;
 
 public class ClientsConnection {
-    private final Integer requestType;
+    private Integer requestType;
     private String ipSrc;
     private String ipDest;
     private Integer numPortSrc;
     private Integer numPortDest;
     private Integer bandwidth;
     public static Integer flowID = 0;
+    private Integer thisFlowID;
     private boolean reservationFree;
 
     public ClientsConnection(Integer requestType, String ipSrc, String ipDest, Integer numPortSrc, Integer numPortDest, Integer bandwidth) {
@@ -20,13 +21,16 @@ public class ClientsConnection {
         this.numPortDest = numPortDest;
         this.bandwidth   = bandwidth;
         this.reservationFree = false;
-        flowID++;
+        this.thisFlowID = flowID++;
     }
 
     public Integer getRequestType() {
         return this.requestType;
     }
     
+    public void setRequestType(int requestType) {
+        this.requestType=requestType;
+    }
     public String getIpSrc() {
         return this.ipSrc;
     }
@@ -45,6 +49,10 @@ public class ClientsConnection {
 
     public Integer getBandwidth() {
         return this.bandwidth;
+    }
+    
+    public Integer getFlowID() {
+        return this.thisFlowID;
     }
 
     public boolean isReservation() {

@@ -1,4 +1,4 @@
-package openjsip;
+//package openjsip;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -31,47 +31,44 @@ public class Reseau {
     }
 
     //returns null if you couldn't change ip to network, returns the network part of the ip if successful
-    public static String ipToNetwork(String ip, String maskIP) throws UnknownHostException {
-        byte[] ipNetwork = null;
-        if((ip != null) && (ip.contains("."))){
-            //converting ip and mask from string to byte
-            byte[] ipAddressByte = InetAddress.getByName(ip).getAddress();
-            byte[] ipMaskByte = InetAddress.getByName(maskIP).getAddress();
-
-            //performing the logical operation & between the ip address and the mask
-            for(int j=0; j<ipAddressByte.length; j++){
-                ipNetwork[j] = (byte) (ipAddressByte[j] & ipMaskByte[j]);
-            }
-
-            //converting from byte to inet address
-            InetAddress netInetAddress = InetAddress.getByAddress(ipNetwork);
-            //and from inet address to string
-            return netInetAddress.getHostAddress();
-        }
-        return null;
+    public static String ipToNetwork(String ip) throws UnknownHostException {
+		/*
+		 * byte[] ipNetwork = null; if(ip != null){ System.out.println("ip pas null");
+		 * //converting ip and mask from string to byte byte[] ipAddressByte =
+		 * InetAddress.getByName(ip).getAddress(); System.out.println("IP Address Byte "
+		 * + ipAddressByte); byte[] ipMaskByte =
+		 * InetAddress.getByName(maskIP).getAddress(); System.out.println("Mask Byte " +
+		 * ipMaskByte); //System.out.println("a"); //performing the logical operation &
+		 * between the ip address and the mask for(int j=0; j<ipAddressByte.length;
+		 * j++){ System.out.println("Dans la boucle"); ipNetwork[j] = (byte)
+		 * (ipAddressByte[j] & ipMaskByte[j]); }
+		 * 
+		 * System.out.println("avant convert"); //converting from byte to inet address
+		 * InetAddress netInetAddress = InetAddress.getByAddress(ipNetwork);
+		 * System.out.println("failed to convert"); //and from inet address to string
+		 * return netInetAddress.getHostAddress(); } else { return null; }
+		
+		 */
+    	String networkConcat="";
+    	String ipTab[] = ip.split("\\.");
+    	if(ipTab.length>2) {
+        	networkConcat = ipTab[0]+"."+ipTab[1]+"."+ipTab[2];
+    	}
+        return networkConcat;
     }
 
     // method used to convert numerical mask to subnet mask
-    public static String getCIDRToSubnetMask(int cidr) {
-        StringBuilder subnetMaskBuilder = new StringBuilder();
-
-        int remainingBits = 32 - cidr;
-        int octet = 0;
-        for (int i = 0; i < 4; i++) {
-            if (remainingBits >= 8) {
-                octet = 255;
-                remainingBits -= 8;
-            } else {
-                octet = (int) (256 - Math.pow(2, remainingBits));
-                remainingBits = 0;
-            }
-
-            subnetMaskBuilder.append(octet);
-
-            if (i < 3) {
-                subnetMaskBuilder.append(".");
-            }
-        }
-        return subnetMaskBuilder.toString();
-    }
+	/*
+	 * public static String getCIDRToSubnetMask(int cidr) { StringBuilder
+	 * subnetMaskBuilder = new StringBuilder();
+	 * 
+	 * int remainingBits = 32 - cidr; int octet = 0; for (int i = 0; i < 4; i++) {
+	 * if (remainingBits >= 8) { octet = 255; remainingBits -= 8; } else { octet =
+	 * (int) (256 - Math.pow(2, remainingBits)); remainingBits = 0; }
+	 * 
+	 * subnetMaskBuilder.append(octet);
+	 * 
+	 * if (i < 3) { subnetMaskBuilder.append("."); } } return
+	 * subnetMaskBuilder.toString(); }
+	 */
 }
