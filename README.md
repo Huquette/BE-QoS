@@ -1,6 +1,6 @@
 # BE-QoS
 
-Ce depot contient tous les documents modifiés ou créés dans le cadre du BE-QoS 2023. Le mode de fonctionnement des appels est explicité via le diagramme de sequence (diagramme seq), et est comme suit:
+Ce depot contient tous les documents modifiés ou créés dans le cadre du BE-QoS 2023. Le mode de fonctionnement des appels est explicité via le diagramme de sequence (diagramme seq à OUVRIR sur draw.io), et est comme suit:
 
 - Envoi d'INVITE au Proxy java qui transmet à l'appelé, puis interception de la réponse de l'appelé contenant les numeros de ports et ip correctes. 
 # Les fonctions modifiées/crées sont : processIncomingResponse et forwardBandwidthBroker. 
