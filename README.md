@@ -10,8 +10,10 @@ Ce depot contient tous les documents modifiés ou créés dans le cadre du BE-Qo
 - Reception de la requete de liberation ou reservation par le TC, qui met en place un shaping des paquets sortants a chaque routeur linux d'entrée/sortie du réseau client (champs TOS = 46). Ce shaping est réalisé par l'execution d'un fichier python qui reçoit les requêtes du BB et écrits des commandes sous linux. 
 
 
-# Fichier tcp_qos_server
+# Fichier tcp_qos_server.py et PEP.sh
 - Les paquets notés prioritaires par les routeurs du réseau client sont reconnus par le réseau de coeur qui met en place un routage MPLS où ceux-ci sont labelisés 5 (tous les autres flux ont un label à 0). 
+- Mise en place de règles Iptables afin de trier les requêtes et de leur attribuer un label.
 
 
 # Fichiers de configuration des routeurs Cisco
+- Mise en place des policy-map sur les routeurs Cisco avec différentes classes de traffic avec des priorités.
