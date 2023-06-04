@@ -36,6 +36,7 @@ import java.util.*;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.DataInputStream;
+import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -66,28 +67,13 @@ import openjsip.proxy.plugins.MethodPluginException;
 import gov.nist.javax.sip.stack.SIPServerTransaction;
 import gov.nist.javax.sip.message.SIPResponse;
 import snmp.*;
-//import javafx.beans.property.ReadOnlyBooleanProperty;
-//import javafx.scene.control.Tab;
 
 public class Proxy extends UnicastRemoteObject implements SipListener, RemoteServiceInterface, Runnable
 {
-    public class TabDemandes{
-        public TabDemandes(Request request,URI targetURI,String method){
-            this.request=request;
-            this.targetURI=targetURI;
-            this.method=method;
-        }
-        public Request request;
-        public URI targetURI; 
-        public String method;
-    }
-
-    private static ArrayList<TabDemandes> tabDemandes = new ArrayList<TabDemandes>();
     /**
      * Logger
      */
     private static Logger log = Logger.getLogger(Proxy.class);
-  
 
     /**
      * Main SIP stack
@@ -1867,36 +1853,7 @@ public class Proxy extends UnicastRemoteObject implements SipListener, RemoteSer
      */
     public void forwardRequest(URI targetURI, Request request, SipProvider sipProvider, ServerTransaction serverTransaction, boolean statefullForwarding) throws InvalidArgumentException, ParseException, SipException
     {
-
-        CSeqHeader cseqHeader = (CSeqHeader)request.getHeader(CSeqHeader.NAME);
-        String method = cseqHeader.getMethod();
-
-        if (method.equals("INVITE")){
-        	log.info("Sending trying to requester");
-        	SipUtils.sendResponse(Response.TRYING, sipProvider, messageFactory, request, serverTransaction);
-            tabDemandes.add(new TabDemandes(request, targetURI, method));
-        }
-        else if (method.equals("OK")){
-            String[] param = getParameters(request, targetURI, method);
-            for (TabDemandes t: tabDemandes){
-                if (getParameters(t.request, t.targetURI, t.method)[0]==param[2]){
-                    if (!sendtoBB(new TabDemandes(request, targetURI, method), t,1)){
-                        log.info("CALL NOT ACCEPTED BY THE BANDWITH BROKER");
-                        SipUtils.sendResponse(Response.DECLINE, sipProvider, messageFactory, request, serverTransaction);
-                        serverTransaction.terminate();
-                    }
-                    tabDemandes.remove(t);
-                }
-            }
-        }
-        else if (method.equals("BYE")){
-            if (!sendtoBB(new TabDemandes(request, targetURI, method), null,0)){
-                log.info("ERROR COMMUNICATING WITH THE BANDWITH BROKER");
-                SipUtils.sendResponse(Response.DECLINE, sipProvider, messageFactory, request, serverTransaction);
-                serverTransaction.terminate();
-            }
-        }
-        else{
+        {
             // Statefull means the use of transactions
             statefullForwarding = statefullForwarding & (serverTransaction != null);
 
@@ -2376,7 +2333,16 @@ public class Proxy extends UnicastRemoteObject implements SipListener, RemoteSer
         String reason = response.getReasonPhrase();
         CSeqHeader cseqHeader = (CSeqHeader) response.getHeader(CSeqHeader.NAME);
         ContactHeader contactHeader = (ContactHeader) response.getHeader(ContactHeader.NAME);
-
+        //code added starts here
+        String method = cseqHeader.getMethod();
+        if ((method.equals("INVITE")||method.equals("BYE")||method.equals("CANCEL")) ){
+        	String addr=response.toString().split("\n")[2].split(" ")[3].split(":")[0];
+        	addr=addr.split(";")[0];
+            if(contactHeader.getAddress().toString()!=null && !(forwardToBandwithBroker(contactHeader, addr ,method))){
+                log.debug("CALL NOT ACCEPTED BY THE BANDWITH BROKER");
+            }
+        }
+        //end of added code
         if (log.isDebugEnabled())
         {
             log.debug("-------------------");
@@ -2901,87 +2867,72 @@ public class Proxy extends UnicastRemoteObject implements SipListener, RemoteSer
         return true;
     }
 
-/**
- * This function is called each time we receive an Invite or a bye, it asks to the Bandwith Broker if the ressources are available. 
- * @param request : Request; request message containing a lot of information
- * @param targetURI : URI; target of the request
- * @param method : String; Type of request : INVITE or BYE
- * @return 
- * */
-
-   private String[] getParameters(Request request, URI targetURI, String method){
-        log.info("Registering the call Demand");
-        ContactHeader contactHeader = (ContactHeader) request.getHeader(ContactHeader.NAME);
-        SipURI target = (SipURI) targetURI;
+    /**
+     * Sends to BB the request 
+     * @param contactHeader contact header of the request
+     * @param addr address of the caller
+     * @param method of the request
+     * @return True if reserv is ok false if not
+     */
+   private boolean forwardToBandwithBroker(ContactHeader contactHeader, String addr, String method){
+        log.trace("Forwarding to Bandwith Broker");
         int requesttype = -1;
         String srcadress= null;
         String srcport = null;
         String destadress = null;
-        int destport= 0;
+        String destport= null;
         if (contactHeader != null ){
-        	//need to do a bit of formatting to get srcadress and srcport
-            String i = contactHeader.getAddress().toString(); ;
-            String[] j=i.split("@");
+            srcadress=contactHeader.getAddress().toString(); //we need to look at the format to get those
+            String[] j=srcadress.split("@");
             String[] k=j[1].split(":");
             srcadress=k[0];
             srcport=k[1].split(";")[0];
         }
-        if (targetURI != null){
-            destadress=target.getHost();
-            destport  =target.getPort();
+        destadress=addr;
+        destport  =srcport;
+        if (method == "INVITE"){
+            requesttype=1; // reserving ressources
         }
-        String [] returned = {srcadress,srcport,String.valueOf(destadress),String.valueOf(destport)};
-        return returned;
-    }
-
-
-    private boolean sendtoBB(TabDemandes sensaller, TabDemandes sensretour,int requesttype){
-            // Address of the Bandwidth Broker
-    	InetAddress IP;
-    	try {
-            IP = InetAddress.getByName("192.168.1.5");
-    	}
-    	catch(Exception e) {
-    		log.info(e);
-            log.info("Address of BB unfindable");
-            return false;
-    	}
-		    int Port = 5060; // arbitrary
-		    int debit = 64;   // 64 kbps according to cisco.com for codec audio 722
-		    String dataSend;
-		    if (requesttype == 1) {
-		        String [] paramAller = getParameters(sensaller.request, sensaller.targetURI, sensaller.method);
-		        String [] paramRetour = getParameters(sensretour.request, sensretour.targetURI, sensretour.method);
-		        dataSend = requesttype+";"+paramAller[0]+";"+paramAller[1]+";"+paramAller[2]+";"+paramRetour[1]+";"+ 64 + "\n";
-		    }
-		    else{
-		        String [] paramAller = getParameters(sensaller.request, sensaller.targetURI, sensaller.method);
-		        dataSend = requesttype+";"+paramAller[0]+";"+paramAller[1]+";"+paramAller[2]+";"+5060+";"+ 64 + "\n";
-		    }
-		    Socket socket; 
-		    String dataRecv = null;
-		    DataInputStream inputStream;
-		    DataOutputStream outputStream;
-		    try {
-				socket = new Socket(IP,Port);
-				outputStream = new DataOutputStream(socket.getOutputStream());
-				log.info("Sending message to Bandwith Broker: "+dataSend);
-				outputStream.writeUTF(dataSend);
-				outputStream.flush();
-				inputStream = new DataInputStream(socket.getInputStream());
-	            dataRecv= inputStream.readUTF();
-	            socket.close();
-			} catch (IOException e) {
-				log.info(e);
-	            log.info("Socket issues with BB");
-	            return false;
-			}
-            log.info("Answer from Bandwith Borker: " + dataRecv);
-            if (dataRecv=="0"){ // Reservation refused
-                return false;
-            }else if (dataRecv=="1"){ // Reservation accepted
-                return true;
+        else if (method == "BYE" || method == "CANCEL"){
+            requesttype=0; //freeing ressources
+        }
+        /**
+        * Sending request to Bandwith Broker
+        */
+        InetAddress IP = null;
+        try {
+            // Adress of the Bandwith Broker 
+            IP = InetAddress.getByName("192.168.1.254");
+        } catch (UnknownHostException e1) {
+            e1.printStackTrace();
+        }
+        int Port = 9650; // arbitrary
+        int debit = 64;   // 64 kbps according to cisco.com for codec audio 722
+        String dataSend = null;
+        dataSend = requesttype+";"+srcadress+";"+srcport+";"+destadress+";"+destport+";"+ 64 +";"+"\n";
+        String dataRecv = null;
+        Socket socket;
+        DataInputStream inputStream;
+        DataOutputStream outputStream;
+        try {
+                socket = new Socket( IP, Port);
+                outputStream = new DataOutputStream(socket.getOutputStream());    
+                log.info("Sending message to Bandwith Broker: "+dataSend+"\n");
+                outputStream.flush();
+                outputStream.writeUTF(dataSend);
+                outputStream.flush();
+                inputStream= new DataInputStream(socket.getInputStream());
+                dataRecv = inputStream.readUTF();
+                socket.close();
+                log.trace("Answer from Bandwith Borker: " + dataRecv+"\n");
+                if (dataRecv.equals("0")){ // Reservation refused
+                    return false;
+                }else if (dataRecv.equals("1")){ // Reservation accepted
+                    return true;
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         return false;
-    }
+        }
 }
