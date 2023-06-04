@@ -1,6 +1,6 @@
 # BE-QoS
 
-Ce depot contient tous les documents modifiés ou créés dans le cadre du BE-QoS 2023. Le mode de fonctionnement des appels est explicité via le diagramme de sequence (diagramme seq à OUVRIR sur draw.io) avec notamment les informations échangées lors d'un INVITE comme les numéros de ports et @IP correctes.
+Ce depot contient tous les documents modifiés ou créés dans le cadre du BE-QoS 2023. Le mode de fonctionnement des appels est explicité via le diagramme de sequence (diagramme seq à OUVRIR sur draw.io) avec notamment les informations échangées lors d'un INVITE comme les numéros de ports et @IP correctes. Slides de la présentation accessibles via le document BE QoS Propositon.pptx.
 
 # Les fonctions modifiées/crées pour le proxy sont : processIncomingResponse (ligne 2327) et forwardToBandwidthBroker (ligne 2877). 
 - Envoi du proxy au bandwidth broker la requete ou fin d'appel, qui vérifie la disponibilité du réseau (variable représentant la bandwidth totale disponible, mise à jour à chaque nouvel appel), et tient un compte des appels en cours via une ArrayList, afin de n'envoyer qu'une seule requete/fin de ressources au TraficController (le proxy forward toutes les INVITEs, hors il y en a plusieurs par appel). 
@@ -18,3 +18,8 @@ Ce depot contient tous les documents modifiés ou créés dans le cadre du BE-Qo
 
 # Fichiers de configuration des routeurs Cisco
 - Mise en place des policy-map sur les routeurs Cisco avec différentes classes de traffic avec des priorités.
+
+
+
+# éléments manquants (SECTION A SUPPRIMER UNE FOIS LES DERNIERS FICHIERS AJOUTES)
+- attente de la version récente de tcp_qos_server.py, PEP.sh et des configurations des routeurs Cisco.
