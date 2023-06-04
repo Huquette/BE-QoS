@@ -2,7 +2,7 @@ import socket
 from subprocess import call
 
 # Constants
-HOST = '0.0.0.0'
+HOST = '0.0.0.0'    #addresse du routeur Linux en question
 PORT = 12345
 BUFFER_SIZE = 1024
 
