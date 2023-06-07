@@ -15,7 +15,6 @@ setup_htb() {
   # Create root qdisc
   tc qdisc add dev $IFACE root handle $HTB_ROOT_HANDLE htb default $HTB_DEFAULT_CLASS
 
-  # Calculate rate and ceil values based on the specified rate range (15-30 kb/s)
   local rate=512
   local ceil=512
 
