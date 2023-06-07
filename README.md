@@ -31,19 +31,20 @@ Ce depot contient tous les documents modifiés ou créés dans le cadre du BE-Qo
 
 - policy-map Police-Client (police d'entrée sur les interfaces VRF)
 - class TR 
-- police cir 512000 (ici on match la capacité de la file prio du PEP)
+- police cir 512000 (valeur que l'on rapportera au niveau de la file prio PEP)
 - conform-action transmit
 - exceed-action drop
 - violate-action drop
 - class class-default
-- police cir 2000000 (ici on match la capacité de la file default du PEP)
+- police cir 2000000 (valeur que l'on rapportera au niveau de la file default PEP)
 - conform-action transmit
 - exceed-action drop
 - violate-action drop
 
-policy-map MPLS-PHB (police de sortie sur les interfaces côté nuage MPLS)
-class MPLS-TR 
-priority percent 30 (on priorise le trafic temps réel a hauteur de 30%)
-class MPLS-DEFAULT
-bandwidth percent 60 (on alloue 60% de la bande-passante au reste du trafic)
+- policy-map MPLS-PHB (police de sortie sur les interfaces côté nuage MPLS)
+- class MPLS-TR 
+- priority percent 30 (on priorise le trafic temps réel a hauteur de 30%)
+- class MPLS-DEFAULT
+- bandwidth percent 60 (on alloue 60% de la bande-passante au reste du trafic)
 
+- 512kbps et 2Mbps choisient car lien série de capacité 8Mbps donc avec 3 sites, on peut allouer maximum 2.5Mbps par site.
