@@ -47,4 +47,4 @@ Ce depot contient tous les documents modifiés ou créés dans le cadre du BE-Qo
 - class MPLS-DEFAULT
 - bandwidth percent 60 (on alloue 60% de la bande-passante au reste du trafic)
 
-- 512kbps et 2Mbps choisient car lien série de capacité 8Mbps donc avec 3 sites, on peut allouer maximum 2.5Mbps par site.
+- 512kbps et 2Mbps choisies car lien série de capacité 8Mbps donc avec 3 sites, on peut allouer maximum 2.5Mbps par site.
