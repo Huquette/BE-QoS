@@ -19,26 +19,27 @@ Ce depot contient tous les documents modifiés ou créés dans le cadre du BE-Qo
 
 # Fichiers de configuration des routeurs Cisco
 - Details class-maps:
-class-map match-any TR (classe Temps Réel)
-match ip dscp ef (match le marquage DSCP fait au niveau des PEP)
-class-map match-all MPLS-TR (classe Temps Réel dans le nuage mpls)
-match mpls experimental topmost 5 (match la translation EF dans MPLS)
-class-map match-all MPLS-DEFAULT (classe défault)
-match mpls experimental topmost 0
+
+-class-map match-any TR (classe Temps Réel)
+-match ip dscp ef (match le marquage DSCP fait au niveau des PEP)
+-class-map match-all MPLS-TR (classe Temps Réel dans le nuage mpls)
+-match mpls experimental topmost 5 (match la translation EF dans MPLS)
+-class-map match-all MPLS-DEFAULT (classe défault)
+-match mpls experimental topmost 0
 
 -Details policy-maps:
 
-policy-map Police-Client (police d'entrée sur les interfaces VRF)
-class TR 
-police cir 512000 (ici on match la capacité de la file prio du PEP)
-conform-action transmit
-exceed-action drop
-violate-action drop
-class class-default
-police cir 2000000 (ici on match la capacité de la file default du PEP)
-conform-action transmit
-exceed-action drop
-violate-action drop
+-policy-map Police-Client (police d'entrée sur les interfaces VRF)
+-class TR 
+-police cir 512000 (ici on match la capacité de la file prio du PEP)
+-conform-action transmit
+-exceed-action drop
+-violate-action drop
+-class class-default
+-police cir 2000000 (ici on match la capacité de la file default du PEP)
+-conform-action transmit
+-exceed-action drop
+-violate-action drop
 
 policy-map MPLS-PHB (police de sortie sur les interfaces côté nuage MPLS)
 class MPLS-TR 
