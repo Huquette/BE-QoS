@@ -11,15 +11,38 @@ Ce depot contient tous les documents modifiés ou créés dans le cadre du BE-Qo
 - Reception de la requete de liberation ou reservation par le TC, qui met en place un shaping des paquets sortants a chaque routeur linux d'entrée/sortie du réseau client (champs TOS = 46). Ce shaping est réalisé par l'execution d'un fichier python qui reçoit les requêtes du BB et écrits des commandes sous linux. 
 - Le Bandwidth Broker est lancé depuis un des routeurs Linux. Afin de l'exécuter, il suffit de taper : java BandwidthBroker   (dans le répertoire où doit se trouver BandwidthBroker.java, ClientsConnection.java, Reseau.java)
 
-# Fichier tcp_qos_server.py et PEP.sh
-- Les paquets notés prioritaires par les routeurs du réseau client sont reconnus par le réseau de coeur qui met en place un routage MPLS où ceux-ci sont labelisés 5 (tous les autres flux ont un label à 0). 
-- Mise en place de règles Iptables afin de trier les requêtes et de leur attribuer un label.
-- Il suffit d'exécuter le script shell PEP.sh (dans le même répertoire que tcp_qos_server.py) qui va aussi exécuter le script python. 
+# Fichier qos_tcp_server.py et PEP.sh - Policy Enforcement Points
+- Script a executer au niveau de chacun des routeurs linux de bordure en ayant pris soin de modifier l'adresse ip du serveur python dans le fichier qos_tcp_server.py
+- le script crée 2 queue HTB, une pour les requêtes de reservation de taille 512kbps et une pour le reste du traffic de taille 2Mbps
+- le serveur python execute des commandes iptables en rentrée du routeur pour marqué les flux afin de les placer dans la bonne queue, et en sortie marquer leur champs DSCP a 46(Expedited Forwarding) afin de permettre leur reconnaissance et leur policing au niveau des interfaces d'entrée du réseau de coeur.
+- Il execute l'opération inverse lors de la requête de libération de ressources.
 
 # Fichiers de configuration des routeurs Cisco
-- Mise en place des policy-map sur les routeurs Cisco avec différentes classes de traffic avec des priorités.
+- Details class-maps:
+class-map match-any TR (classe Temps Réel)
+match ip dscp ef (match le marquage DSCP fait au niveau des PEP)
+class-map match-all MPLS-TR (classe Temps Réel dans le nuage mpls)
+match mpls experimental topmost 5 (match la translation EF dans MPLS)
+class-map match-all MPLS-DEFAULT (classe défault)
+match mpls experimental topmost 0
 
+-Details policy-maps:
 
+policy-map Police-Client (police d'entrée sur les interfaces VRF)
+class TR 
+police cir 512000 (ici on match la capacité de la file prio du PEP)
+conform-action transmit
+exceed-action drop
+violate-action drop
+class class-default
+police cir 2000000 (ici on match la capacité de la file default du PEP)
+conform-action transmit
+exceed-action drop
+violate-action drop
 
-# éléments manquants (SECTION A SUPPRIMER UNE FOIS LES DERNIERS FICHIERS AJOUTES)
-- attente de la version récente de tcp_qos_server.py, PEP.sh et des configurations des routeurs Cisco.
+policy-map MPLS-PHB (police de sortie sur les interfaces côté nuage MPLS)
+class MPLS-TR 
+priority percent 30 (on priorise le trafic temps réel a hauteur de 30%)
+class MPLS-DEFAULT
+bandwidth percent 60 (on alloue 60% de la bande-passante au reste du trafic)
+
